@@ -1,6 +1,6 @@
 # Face Recognition with ArcFace ONNX and 5-Point Alignment
 
-A local, camera-based face-recognition pipeline using:
+A local, camera-based face-recognition pipeline using :
 
 - OpenCV for camera access and image processing
 - Haar detection with MediaPipe FaceMesh landmarks
