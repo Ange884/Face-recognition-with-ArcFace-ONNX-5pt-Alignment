@@ -21,6 +21,7 @@ p : print embedding stats to terminal
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Tuple, Optional
 
 import time
@@ -66,8 +67,17 @@ class ArcFaceEmbedderONNX:
         self.in_w, self.in_h = input_size
         self.debug = debug
 
+        model_file = Path(model_path)
+
+        if not model_file.is_file():
+            raise FileNotFoundError(
+                f"ArcFace ONNX model not found: {model_file.resolve()}\n"
+                "Download a compatible ArcFace/InsightFace ONNX model "
+                "and save it as models/embedder_arcface.onnx."
+            )
+
         self.sess = ort.InferenceSession(
-            model_path,
+            str(model_file),
             providers=["CPUExecutionProvider"],
         )
 

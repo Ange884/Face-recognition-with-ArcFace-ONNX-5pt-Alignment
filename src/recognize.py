@@ -230,8 +230,17 @@ class ArcFaceEmbedderONNX:
 
         self.debug = bool(debug)
 
+        model_file = Path(model_path)
+
+        if not model_file.is_file():
+            raise FileNotFoundError(
+                f"ArcFace ONNX model not found: {model_file.resolve()}\n"
+                "Download a compatible ArcFace/InsightFace ONNX model "
+                "and save it as models/embedder_arcface.onnx."
+            )
+
         self.sess = ort.InferenceSession(
-            model_path,
+            str(model_file),
             providers=["CPUExecutionProvider"],
         )
 
@@ -709,7 +718,7 @@ def main():
         dist_thresh=0.34,
     )  # from your evaluate_new output
 
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(1)
 
     if not cap.isOpened():
         raise RuntimeError(

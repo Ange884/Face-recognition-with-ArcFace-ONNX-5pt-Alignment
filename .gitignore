@@ -1,3 +1,18 @@
+# Virtual environment
+.venv312/
 .venv/
+venv/
+
+# Python cache
 __pycache__/
 *.pyc
+
+# Face recognition generated data
+data/db/
+data/enroll/
+
+# Local/model files
+models/
+
+# Temporary files
+*.log

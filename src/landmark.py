@@ -1,12 +1,12 @@
-# src/landmarks.py
+# src/landmark.py
 
 """
 Minimal pipeline:
 
-camera -> Haar face box -> MediaPipe FaceMesh (full-frame) -> extract 5 keypoints -> draw
+camera -> Haar face box -> MediaPipe FaceLandmarker (full-frame) -> extract 5 keypoints -> draw
 
 Run:
-python -m src.landmarks
+python -m src.landmark
 
 Keys:
 q : quit
@@ -15,14 +15,18 @@ q : quit
 import cv2
 import numpy as np
 import mediapipe as mp
+from mediapipe.tasks import python as mp_python
+from mediapipe.tasks.python import vision as mp_vision
 
 
-# 5-point indices (FaceMesh)
+# 5-point indices (same 478-point face mesh topology)
 IDX_LEFT_EYE = 33
 IDX_RIGHT_EYE = 263
 IDX_NOSE_TIP = 1
 IDX_MOUTH_LEFT = 61
 IDX_MOUTH_RIGHT = 291
+
+MODEL_PATH = "models/face_landmarker.task"
 
 
 def main():
@@ -33,21 +37,25 @@ def main():
     if face.empty():
         raise RuntimeError(f"Failed to load cascade: {cascade_path}")
 
-    # FaceMesh
-    fm = mp.solutions.face_mesh.FaceMesh(
-        static_image_mode=False,
-        max_num_faces=1,
-        refine_landmarks=True,
-        min_detection_confidence=0.5,
+    # FaceLandmarker (Tasks API)
+    options = mp_vision.FaceLandmarkerOptions(
+        base_options=mp_python.BaseOptions(model_asset_path=MODEL_PATH),
+        running_mode=mp_vision.RunningMode.VIDEO,
+        num_faces=1,
+        min_face_detection_confidence=0.5,
+        min_face_presence_confidence=0.5,
         min_tracking_confidence=0.5,
     )
+
+    landmarker = mp_vision.FaceLandmarker.create_from_options(options)
+    frame_ts_ms = 0
 
     cap = cv2.VideoCapture(1)
 
     if not cap.isOpened():
         raise RuntimeError("Camera not opened. Try camera index 0/1/2.")
 
-    print("Haar + FaceMesh 5pt (minimal). Press 'q' to quit.")
+    print("Haar + FaceLandmarker 5pt (minimal). Press 'q' to quit.")
 
     while True:
         ok, frame = cap.read()
@@ -75,12 +83,15 @@ def main():
                 2,
             )
 
-        # FaceMesh on full frame (simple)
+        # FaceLandmarker on full frame (simple)
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        res = fm.process(rgb)
+        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
 
-        if res.multi_face_landmarks:
-            lm = res.multi_face_landmarks[0].landmark
+        frame_ts_ms += 33  # monotonic timestamp, ~30fps
+        res = landmarker.detect_for_video(mp_image, frame_ts_ms)
+
+        if res.face_landmarks:
+            lm = res.face_landmarks[0]
 
             idxs = [
                 IDX_LEFT_EYE,
